@@ -1,35 +1,29 @@
 import { Injectable } from '@nestjs/common';
-import { Item, ItemStatus } from './list.model';
-import { v4 as uuid } from 'uuid';
+import { ItemStatus } from './list-status.enum';
 import { CreateItemDto } from './dto/create-item.dto';
 import { GetItemsFilterDto } from './dto/get-items-filter.dto';
 import { NotFoundException } from '@nestjs/common';
+import { ListRepository } from './list.repository';
+import { List } from './list.entity';
 
 @Injectable()
 export class ListService {
-  private list: Item[] = [];
+  constructor(private listRepository: ListRepository) {}
 
-  //get All Items
-  getAllItems(): Item[] {
-    return this.list;
+  //get all items or filter them by status or search
+  getItems(filterDto: GetItemsFilterDto): Promise<List[]> {
+    return this.listRepository.getItems(filterDto);
   }
 
-  //create a new item
-  createItem(createTaskDto: CreateItemDto): Item {
-    const { itemName } = createTaskDto;
-    const item: Item = {
-      id: uuid(),
-      itemName: itemName,
-      status: ItemStatus.WAITING,
-    };
-
-    this.list.push(item);
-    return item;
+  //create new item and save it in db
+  createItem(createItemDto: CreateItemDto): Promise<List> {
+    return this.listRepository.createItem(createItemDto);
   }
 
   //getting an item by id
-  getItemById(id: string): Item {
-    const found = this.list.find((item) => item.id === id);
+
+  async getItemsById(id: string): Promise<List> {
+    const found = await this.listRepository.findOneBy({ id });
 
     if (!found) {
       throw new NotFoundException(`Task with ID "${id}" not found`);
@@ -38,36 +32,23 @@ export class ListService {
     return found;
   }
 
-  //deleting an item by id
-  deleteItemById(id: string): void {
-    const found = this.getItemById(id);
-    this.list = this.list.filter((item) => item.id !== found.id);
+  async deleteItemById(id: string): Promise<void> {
+    const result = await this.listRepository.delete({ id });
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`Task with ID "${id}" not found`);
+    }
   }
 
-  //updating an item status by id
-  updateItemStatusById(id: string, status: ItemStatus): Item {
-    const item = this.getItemById(id);
+  async updateItemStatusById(id: string, status: ItemStatus): Promise<List> {
+    const item = await this.getItemsById(id);
+
+    if (!item) {
+      throw new NotFoundException(`Task with ID "${id}" not found`);
+    }
+
     item.status = status;
+    await this.listRepository.save(item);
     return item;
-  }
-
-  //filtering items by status
-  getItemsWithFilters(filterDto: GetItemsFilterDto): Item[] {
-    const { status, search } = filterDto;
-
-    let items = this.getAllItems();
-
-    if (status) {
-      items = items.filter((item) => item.status === status);
-    }
-
-    if (search) {
-      items = items.filter(
-        (item) =>
-          item.itemName.includes(search) || item.status.includes(search),
-      );
-    }
-
-    return items;
   }
 }
