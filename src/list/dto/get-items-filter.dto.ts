@@ -1,5 +1,5 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { ItemStatus } from '../list.model';
+import { ItemStatus } from '../list-status.enum';
 
 export class GetItemsFilterDto {
   @IsOptional()
