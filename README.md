@@ -1,73 +1,257 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Items CRUD — NestJS Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A RESTful CRUD API for managing items, built with [NestJS](https://nestjs.com/), [TypeORM](https://typeorm.io/), and [PostgreSQL](https://www.postgresql.org/).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## Table of Contents
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Data Model](#data-model)
+- [Environment Configuration](#environment-configuration)
+- [Installation](#installation)
+- [Running the App](#running-the-app)
+- [API Reference](#api-reference)
+- [Testing](#testing)
+
+---
+
+## Overview
+
+This service exposes a JSON REST API that allows clients to create, read, update, and delete items. Each item has a name and a status (`WAITING` or `DONE`). Items can be filtered by status or searched by name.
+
+---
+
+## Tech Stack
+
+| Layer        | Technology                          |
+|--------------|-------------------------------------|
+| Framework    | NestJS 10                           |
+| Language     | TypeScript 5                        |
+| Database     | PostgreSQL                          |
+| ORM          | TypeORM 0.3                         |
+| Validation   | class-validator / class-transformer |
+| Config       | @nestjs/config (.env)               |
+| Testing      | Jest + Supertest                    |
+
+---
+
+## Project Structure
+
+```
+src/
+├── app.module.ts          # Root module — wires up TypeORM and ListModule
+├── main.ts                # Entry point — bootstraps the app and global pipes
+└── list/
+    ├── dto/
+    │   ├── create-item.dto.ts          # Body DTO for POST /list
+    │   ├── get-items-filter.dto.ts     # Query DTO for GET /list
+    │   └── update-item-status.dto.ts  # Body DTO for PATCH /list/:id/status
+    ├── list-status.enum.ts  # ItemStatus enum (WAITING | DONE)
+    ├── list.controller.ts   # Route handlers
+    ├── list.entity.ts       # TypeORM entity (maps to the `list` table)
+    ├── list.module.ts       # Feature module
+    ├── list.repository.ts   # Custom TypeORM repository
+    └── list.service.ts      # Business logic
+```
+
+---
+
+## Data Model
+
+### `List` entity
+
+| Column     | Type         | Description                      |
+|------------|--------------|----------------------------------|
+| `id`       | UUID (PK)    | Auto-generated primary key       |
+| `itemName` | varchar      | Name / description of the item   |
+| `status`   | varchar      | Current status of the item       |
+
+### `ItemStatus` enum
+
+| Value     | Meaning                   |
+|-----------|---------------------------|
+| `WAITING` | Item is pending / to-do   |
+| `DONE`    | Item has been completed   |
+
+---
+
+## Environment Configuration
+
+Copy `.env.sample` to `.env` and fill in the values:
+
+```bash
+cp .env.sample .env
+```
+
+| Variable            | Description                             | Example           |
+|---------------------|-----------------------------------------|-------------------|
+| `DATABASE_HOST`     | PostgreSQL host                         | `localhost`       |
+| `DATABASE_PORT`     | PostgreSQL port                         | `5432`            |
+| `DATABASE_USERNAME` | Database user                           | `postgres`        |
+| `DATABASE_PASSWORD` | Database password                       | `secret`          |
+| `DATABASE_DATABASE` | Database name                           | `items_db`        |
+| `PORT`              | Port the HTTP server listens on         | `3000`            |
+
+> **Note:** `synchronize: true` is set in `AppModule`, so TypeORM will automatically sync the schema on startup. This is convenient for development but should be disabled in production in favour of migrations.
+
+---
 
 ## Installation
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Running the app
+---
+
+## Running the App
 
 ```bash
-# development
-$ npm run start
+# Development
+npm run start
 
-# watch mode
-$ npm run start:dev
+# Development with hot-reload (watch mode)
+npm run start:dev
 
-# production mode
-$ npm run start:prod
+# Debug mode
+npm run start:debug
+
+# Production (requires a prior build)
+npm run build
+npm run start:prod
 ```
 
-## Test
+The server will be available at `http://localhost:<PORT>` (default `3000`).
+
+---
+
+## API Reference
+
+Base path: `/list`
+
+### Get all items
+
+```
+GET /list
+```
+
+**Query parameters (all optional)**
+
+| Parameter | Type                  | Description                        |
+|-----------|-----------------------|------------------------------------|
+| `status`  | `WAITING` \| `DONE`   | Filter items by status             |
+| `search`  | string                | Search items by name (partial match) |
+
+**Response** `200 OK` — array of `List` objects.
+
+---
+
+### Create an item
+
+```
+POST /list
+```
+
+**Request body**
+
+```json
+{
+  "itemName": "Buy groceries"
+}
+```
+
+| Field      | Type   | Required | Description         |
+|------------|--------|----------|---------------------|
+| `itemName` | string | ✅       | Name of the item    |
+
+**Response** `201 Created` — the newly created `List` object.
+
+---
+
+### Get an item by ID
+
+```
+GET /list/:id
+```
+
+| Parameter | Type   | Description        |
+|-----------|--------|--------------------|
+| `id`      | UUID   | ID of the item     |
+
+**Response** `200 OK` — a single `List` object.  
+**Error** `404 Not Found` — if no item with the given ID exists.
+
+---
+
+### Delete an item
+
+```
+DELETE /list/:id
+```
+
+| Parameter | Type   | Description        |
+|-----------|--------|--------------------|
+| `id`      | UUID   | ID of the item     |
+
+**Response** `200 OK` — empty body on success.  
+**Error** `404 Not Found` — if no item with the given ID exists.
+
+---
+
+### Update item status
+
+```
+PATCH /list/:id/status
+```
+
+| Parameter | Type   | Description        |
+|-----------|--------|--------------------|
+| `id`      | UUID   | ID of the item     |
+
+**Request body**
+
+```json
+{
+  "status": "DONE"
+}
+```
+
+| Field    | Type                  | Required | Description            |
+|----------|-----------------------|----------|------------------------|
+| `status` | `WAITING` \| `DONE`   | ✅       | New status of the item |
+
+**Response** `200 OK` — the updated `List` object.  
+**Error** `404 Not Found` — if no item with the given ID exists.
+
+---
+
+### Example `List` response object
+
+```json
+{
+  "id": "a3f1c2d4-e5b6-7890-abcd-ef1234567890",
+  "itemName": "Buy groceries",
+  "status": "WAITING"
+}
+```
+
+---
+
+## Testing
 
 ```bash
-# unit tests
-$ npm run test
+# Unit tests
+npm run test
 
-# e2e tests
-$ npm run test:e2e
+# Unit tests in watch mode
+npm run test:watch
 
-# test coverage
-$ npm run test:cov
+# End-to-end tests
+npm run test:e2e
+
+# Test coverage report
+npm run test:cov
 ```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
